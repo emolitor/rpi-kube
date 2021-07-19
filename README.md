@@ -9,7 +9,7 @@ Kubernetes config file named kubeconfig which you can use with kubectl.
 ansible-galaxy install -r requirements.yml
 ```
 
-## Setup
+## Configure
 Create your inventory file. The example below assumes you are using 
 [Lite ARM64](https://downloads.raspberrypi.org/raspios_lite_arm64/images/)
 Raspberry PI OS image using the default username and password. This is not 
