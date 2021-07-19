@@ -1,0 +1,55 @@
+---
+- name: Provision Raspberry Cluster
+  hosts: all
+  become: True
+  tasks:
+    - name: Update Packages
+      apt:
+        update_cache: yes
+        upgrade: full
+
+    - name: Enable CGroups
+      replace:
+        path: /boot/cmdline.txt
+        regexp: '^([\w](?!.*\b{{ item }}\b).*)$'
+        replace: '\1 {{ item }}'
+      with_items:
+      - "cgroup_enable=cpuset"
+      - "cgroup_memory=1"
+      - "cgroup_enable=memory"
+      register: cmdline
+
+    - name: Reboot
+      reboot:
+      when: cmdline.changed
+
+    - name: Deploy k3s
+      include_role:
+        name: xanmanning.k3s
+      vars:
+        k3s_become_for_all: true
+        k3s_server:
+          disable:
+            - traefik
+            - servicelb
+
+    - name: Copy Configuration
+      ansible.builtin.copy:
+        src: /etc/rancher/k3s/k3s.yaml
+        remote_src: true
+        dest: /root/kubeconfig
+      when:  k3s_control_node
+
+    - name: Update Configuration
+      ansible.builtin.replace:
+        path: /root/kubeconfig
+        regexp: '127\.0\.0\.1'
+        replace: "{{ inventory_hostname }}"
+      when:  k3s_control_node
+
+    - name: Fetch Configuration
+      ansible.builtin.fetch:
+        src: /root/kubeconfig
+        dest: ../kubeconfig
+        flat: true
+      when:  k3s_control_node
